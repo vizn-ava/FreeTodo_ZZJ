@@ -8,6 +8,7 @@ import { PanelHeader } from "@/components/common/layout/PanelHeader";
 import { useConfig } from "@/lib/query";
 import {
 	AutoTodoDetectionSection,
+	BailianConfigSection,
 	DifyConfigSection,
 	DockDisplayModeSection,
 	LlmConfigSection,
@@ -50,6 +51,9 @@ export function SettingsPanel() {
 			>
 				{/* LLM 配置 */}
 				<LlmConfigSection config={config} loading={loading} />
+
+				{/* 百炼语音聊天配置 */}
+				<BailianConfigSection config={config} loading={loading} />
 
 				{/* Tavily 配置 */}
 				<TavilyConfigSection config={config} loading={loading} />

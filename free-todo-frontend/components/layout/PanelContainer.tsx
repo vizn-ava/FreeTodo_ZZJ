@@ -51,6 +51,7 @@ export function PanelContainer({
 		calendar: "Calendar Panel",
 		todos: "Todos Panel",
 		chat: "Chat Panel",
+		voiceChat: "Voice Chat Panel",
 		todoDetail: "Todo Detail Panel",
 		diary: "Diary Panel",
 		settings: "Settings Panel",

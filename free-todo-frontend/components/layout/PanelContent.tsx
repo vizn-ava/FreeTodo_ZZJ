@@ -12,6 +12,7 @@ import { DiaryPanel } from "@/apps/diary";
 import { SettingsPanel } from "@/apps/settings";
 import { TodoDetail } from "@/apps/todo-detail";
 import { TodoList } from "@/apps/todo-list";
+import { VoiceChatPanel } from "@/apps/voice-chat";
 import {
 	PanelHeader,
 	PanelPositionProvider,
@@ -46,6 +47,7 @@ export function PanelContent({ position }: PanelContentProps) {
 			activity: "activityLabel",
 			todos: "todosLabel",
 			chat: "chatLabel",
+			voiceChat: "voiceChatLabel",
 			todoDetail: "todoDetailLabel",
 			diary: "diaryLabel",
 			settings: "settingsLabel",
@@ -66,6 +68,7 @@ export function PanelContent({ position }: PanelContentProps) {
 			activity: "activityPlaceholder",
 			todos: "todosPlaceholder",
 			chat: "chatPlaceholder",
+			voiceChat: "voiceChatPlaceholder",
 			todoDetail: "todoDetailPlaceholder",
 			diary: "diaryPlaceholder",
 			settings: "settingsPlaceholder",
@@ -130,6 +133,14 @@ export function PanelContent({ position }: PanelContentProps) {
 		return (
 			<PanelPositionProvider position={position}>
 				<ChatPanel />
+			</PanelPositionProvider>
+		);
+	}
+
+	if (feature === "voiceChat") {
+		return (
+			<PanelPositionProvider position={position}>
+				<VoiceChatPanel />
 			</PanelPositionProvider>
 		);
 	}

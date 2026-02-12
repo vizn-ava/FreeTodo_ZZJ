@@ -55,6 +55,10 @@ export interface AppConfig {
 	llmModel?: string;
 	llmTemperature?: number;
 	llmMaxTokens?: number;
+	// Bailian realtime voice chat config
+	bailianApiKey?: string;
+	bailianWorkspaceId?: string;
+	bailianAppId?: string;
 	// 录制配置
 	jobsRecorderEnabled?: boolean;
 	jobsRecorderInterval?: number;

@@ -115,6 +115,7 @@ audio_transcription:
   compute_type: auto
   beam_size: 5
   language: auto
+  normalize_to_simplified: true
   vad_filter: true
   vad_parameters:
     min_silence_duration_ms: 500
@@ -177,6 +178,18 @@ llm:
           output_price: 0.03
 
 # Tavily 配置（联网搜索）
+bailian:
+  api_key: YOUR_DASHSCOPE_API_KEY_HERE
+  workspace_id: ""
+  app_id: ""
+  model: qwen3-omni-flash
+
+openai:
+  api_key: YOUR_OPENAI_API_KEY_HERE
+  realtime:
+    model: gpt-4o-realtime-preview
+    voice: alloy
+
 tavily:
   api_key: YOUR_TAVILY_API_KEY_HERE # Tavily API Key，需要用户配置
   search_depth: basic # 搜索深度：basic 或 advanced

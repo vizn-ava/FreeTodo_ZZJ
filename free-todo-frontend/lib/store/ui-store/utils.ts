@@ -51,7 +51,7 @@ export const DEFAULT_PANEL_STATE = {
 	panelFeatureMap: {
 		panelA: "todos" as PanelFeature,
 		panelB: "chat" as PanelFeature,
-		panelC: "diary" as PanelFeature,
+		panelC: "voiceChat" as PanelFeature,
 		panelD: "todoDetail" as PanelFeature,
 	},
 	autoClosedPanels: [] as PanelPosition[],

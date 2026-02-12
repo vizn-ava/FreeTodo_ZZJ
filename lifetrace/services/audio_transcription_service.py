@@ -24,6 +24,43 @@ class AudioTranscriptionService:
     def __init__(self) -> None:
         self._whisper_model = None
         self._diarization_pipeline = None
+        self._opencc_converter = None
+
+    def _get_opencc_converter(self):
+        if self._opencc_converter is not None:
+            return self._opencc_converter
+        try:
+            from opencc import OpenCC
+
+            self._opencc_converter = OpenCC("t2s")
+            return self._opencc_converter
+        except Exception as e:  # pragma: no cover - optional dependency/runtime
+            logger.warning(f"OpenCC not available, skip t2s normalization: {e}")
+            self._opencc_converter = False
+            return None
+
+    def _should_normalize_to_simplified(self, language: str | None) -> bool:
+        enabled = settings.get("audio_transcription.normalize_to_simplified", True)
+        if not enabled:
+            return False
+        if language is None:
+            return True
+        lang = language.lower().strip()
+        return lang.startswith("zh")
+
+    def _normalize_segments_to_simplified(
+        self, segments: list[dict[str, Any]], language: str | None
+    ) -> list[dict[str, Any]]:
+        if not segments or not self._should_normalize_to_simplified(language):
+            return segments
+        converter = self._get_opencc_converter()
+        if converter is None:
+            return segments
+        for segment in segments:
+            text = segment.get("text_content")
+            if isinstance(text, str) and text:
+                segment["text_content"] = converter.convert(text)
+        return segments
 
     def _get_device(self) -> str:
         device = settings.get("audio_transcription.device", "cpu")
@@ -199,6 +236,10 @@ class AudioTranscriptionService:
 
         diarization_segments = self._run_diarization(file_path, diarization_enabled)
         asr_segments = self._assign_speakers(asr_segments, diarization_segments)
+        asr_segments = self._normalize_segments_to_simplified(
+            asr_segments,
+            info.language if info else language,
+        )
 
         return {
             "segments": asr_segments,

@@ -24,6 +24,7 @@ from lifetrace.routers import (
     time_allocation,
     todo,
     todo_extraction,
+    voice_chat,
     vector,
     vision,
 )
@@ -134,6 +135,7 @@ app.include_router(time_allocation.router)
 app.include_router(todo_extraction.router)
 app.include_router(vision.router)
 app.include_router(notification.router)
+app.include_router(voice_chat.router)
 
 
 def find_available_port(host: str, start_port: int, max_attempts: int = 100) -> int:

@@ -15,6 +15,7 @@ import {
 	type LucideIcon,
 	MessageSquare,
 	Mic,
+	Phone,
 	Settings,
 } from "lucide-react";
 
@@ -24,6 +25,7 @@ export type PanelFeature =
 	| "activity"
 	| "todos"
 	| "chat"
+	| "voiceChat"
 	| "todoDetail"
 	| "diary"
 	| "settings"
@@ -50,6 +52,7 @@ export const ALL_PANEL_FEATURES: PanelFeature[] = [
 	"activity",
 	"todos",
 	"chat",
+	"voiceChat",
 	"todoDetail",
 	"diary",
 	"settings",
@@ -66,6 +69,7 @@ export const FEATURE_ICON_MAP: Record<PanelFeature, LucideIcon> = {
 	activity: Activity,
 	todos: ListTodo,
 	chat: MessageSquare,
+	voiceChat: Phone,
 	todoDetail: FileText,
 	diary: Mic,
 	settings: Settings,

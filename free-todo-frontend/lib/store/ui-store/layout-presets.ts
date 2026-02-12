@@ -8,7 +8,7 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
 		panelFeatureMap: {
 			panelA: "todos",
 			panelB: "chat",
-			panelC: "diary",
+			panelC: "voiceChat",
 			panelD: "todoDetail",
 		},
 		isPanelAOpen: true,

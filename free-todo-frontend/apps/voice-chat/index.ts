@@ -1,0 +1,2 @@
+export { VoiceChatPanel } from "./VoiceChatPanel";
+

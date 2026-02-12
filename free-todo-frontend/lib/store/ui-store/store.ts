@@ -409,6 +409,12 @@ export const useUiStore = create<UiStoreState>()(
 								state.panelFeatureMap = validatePanelFeatureMap(
 									state.panelFeatureMap,
 								);
+								const hasVoiceChat = Object.values(
+									state.panelFeatureMap,
+								).includes("voiceChat");
+								if (!hasVoiceChat && state.panelFeatureMap.panelC === "diary") {
+									state.panelFeatureMap.panelC = "voiceChat";
+								}
 							}
 
 							// 验证宽度值

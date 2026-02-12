@@ -59,6 +59,7 @@ _SIMPLE_PREFIX_MAP: dict[str, tuple[int, str]] = {
     "chat_": (5, "chat"),
     "dify_": (5, "dify"),
     "tavily_": (7, "tavily"),
+    "bailian_": (8, "bailian"),
 }
 
 # 复合任务名映射：首部分 -> 完整任务名
@@ -268,12 +269,18 @@ class ConfigService:
             "dify.base_url",
             # Tavily 配置（联网搜索）
             "tavily.api_key",
+            # Bailian realtime voice chat config
+            "bailian.api_key",
+            "bailian.workspace_id",
+            "bailian.app_id",
         ]
 
         config_dict = {}
         for backend_key in backend_config_keys:
             try:
                 value = settings.get(backend_key)
+                if backend_key == "bailian.api_key" and isinstance(value, str):
+                    value = self._mask_api_key(value)
                 # 将点分隔格式转换为 snake_case 格式，以便前端 fetcher 能正确转换为 camelCase
                 frontend_key = dot_to_snake_notation(backend_key)
                 config_dict[frontend_key] = value
@@ -283,6 +290,15 @@ class ConfigService:
                 continue
 
         return config_dict
+
+    @staticmethod
+    def _mask_api_key(value: str) -> str:
+        key = value.strip()
+        if not key:
+            return ""
+        if len(key) <= 10:
+            return "*" * len(key)
+        return f"{key[:6]}{'*' * 8}{key[-4:]}"
 
     def update_config_file(self, new_settings: dict[str, Any], config_path: str) -> None:
         """更新配置文件
@@ -300,6 +316,16 @@ class ConfigService:
             # 将 snake_case 格式转换为点分隔格式
             backend_key = snake_to_dot_notation(raw_key)
             logger.info(f"更新配置: {raw_key} -> {backend_key} = {value}")
+
+            # Ignore masked key values from frontend to avoid overwriting real secrets.
+            if (
+                backend_key == "bailian.api_key"
+                and isinstance(value, str)
+                and "*" in value
+                and value != ""
+            ):
+                logger.info("Skip masked bailian api key update from frontend")
+                continue
 
             # 处理嵌套配置键
             keys = backend_key.split(".")

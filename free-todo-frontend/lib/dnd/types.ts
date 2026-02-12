@@ -45,7 +45,7 @@ export type DragData =
 	| {
 			type: "PANEL_HEADER";
 			payload: {
-				position: "panelA" | "panelB" | "panelC";
+				position: "panelA" | "panelB" | "panelC" | "panelD";
 			};
 	  };
 
@@ -106,7 +106,7 @@ export type DropData =
 	| {
 			type: "PANEL_HEADER";
 			metadata: {
-				position: "panelA" | "panelB" | "panelC";
+				position: "panelA" | "panelB" | "panelC" | "panelD";
 			};
 	  };
 

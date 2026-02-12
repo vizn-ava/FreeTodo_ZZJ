@@ -1,0 +1,30 @@
+server:
+  host: 127.0.0.1
+  port: 8001
+
+# Minimal example for teammate integration.
+# Actual runtime config is generated/maintained in lifetrace/config/config.yaml.
+
+llm:
+  api_key: YOUR_LLM_KEY_HERE
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  model: qwen-plus
+
+bailian:
+  api_key: YOUR_BAILIAN_API_KEY_HERE
+  workspace_id: YOUR_WORKSPACE_ID_HERE
+  app_id: YOUR_APP_ID_HERE
+  model: qwen3-omni-flash
+
+audio_transcription:
+  enabled: true
+  model: small
+  device: auto
+  compute_type: auto
+  language: zh
+  normalize_to_simplified: true
+  diarization:
+    enabled: false
+    model: pyannote/speaker-diarization-3.1
+    auth_token: ""
+

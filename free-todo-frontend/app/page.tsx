@@ -33,7 +33,6 @@ export default function HomePage() {
 		panelDWidth,
 		setPanelAWidth,
 		setPanelCWidth,
-		setPanelDWidth,
 	} = useUiStore();
 	const { currentNotification, setNotification } = useNotificationStore();
 	const [isDraggingPanelA, setIsDraggingPanelA] = useState(false);

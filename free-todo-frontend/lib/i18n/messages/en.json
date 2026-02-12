@@ -30,7 +30,9 @@
     "todosPlaceholder": "Placeholder: plug a Todo list here",
     "todoListTitle": "Todos",
     "chatLabel": "AI Chat",
+    "voiceChatLabel": "Voice Chat",
     "chatPlaceholder": "Placeholder: plug an AI chat component here",
+    "voiceChatPlaceholder": "Open a realtime voice conversation with AI",
     "chatTitle": "Free Todo - AI Assistant",
     "chatSubtitle": "A personalized AI chat app that helps you manage todos and boost productivity.",
     "chatQuestion": "How can I help you today?",
@@ -127,6 +129,13 @@
       "voiceInputLanguageLabel": "Transcription language",
       "voiceInputLanguageHint": "Choose Auto if you want the model to detect the language",
       "voiceInputLanguageSaved": "Voice input language saved",
+      "bailianConfigTitle": "Bailian Voice Chat",
+      "bailianConfigDescription": "Configure API key, workspace and app for realtime voice chat",
+      "bailianSaveSuccess": "Bailian voice chat configuration saved",
+      "bailianApiKeyPlaceholder": "Enter a new API key to replace",
+      "bailianWorkspaceId": "Workspace ID",
+      "bailianAppId": "App ID",
+      "bailianConfigHint": "API key is masked after saving. Focus the field to replace it.",
       "developerSectionTitle": "Developer Options",
       "developerSectionDescription": "Advanced and experimental settings for developers or power users.",
       "devPanelsTitle": "Panels in Development",
@@ -184,6 +193,7 @@
     "activity": "Activity",
     "todos": "Todos",
     "chat": "Chat",
+    "voiceChat": "Voice Chat",
     "todoDetail": "Todo Detail",
     "diary": "Voice Notes",
     "settings": "Settings",
@@ -702,6 +712,26 @@
     "statusDone": "Done",
     "statusFailed": "Failed",
     "statusDeleted": "Deleted"
+  },
+  "voiceChat": {
+    "title": "Voice Chat",
+    "status": {
+      "ready": "Press the mic button to start a voice session",
+      "connecting": "Connecting to realtime session...",
+      "listening": "You are now in live voice chat"
+    },
+    "actions": {
+      "startSession": "Start Voice Chat",
+      "endSession": "End and Show Transcript"
+    },
+    "transcript": {
+      "empty": "No transcript generated in this session",
+      "user": "You",
+      "assistant": "Assistant"
+    },
+    "errors": {
+      "startFailed": "Failed to start voice chat session"
+    }
   },
   "voiceInput": {
     "startRecording": "Start voice input",

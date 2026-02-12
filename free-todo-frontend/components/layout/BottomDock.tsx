@@ -47,6 +47,7 @@ const FEATURE_LABEL_MAP: Partial<Record<PanelFeature, string>> = {
 	activity: "activity",
 	todos: "todos",
 	chat: "chat",
+	voiceChat: "voiceChat",
 	todoDetail: "todoDetail",
 	diary: "diary",
 	settings: "settings",
@@ -367,7 +368,7 @@ export function BottomDock({ className }: BottomDockProps) {
 		const defaultFeatureMap: Record<PanelPosition, PanelFeature> = {
 			panelA: "todos",
 			panelB: "chat",
-			panelC: "diary",
+			panelC: "voiceChat",
 			panelD: "todoDetail",
 		};
 		const feature = mounted

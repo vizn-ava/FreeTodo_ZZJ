@@ -198,8 +198,11 @@ export const useChatController = ({
 		// 如果conversationId存在但历史记录为空，可能是正在加载，保持标志为true等待数据
 	}, [sessionHistory, conversationId, isStreaming]);
 
-	const handleSend = useCallback(async () => {
-		const text = inputValue.trim();
+	const handleSendText = useCallback(
+		async (
+			text: string,
+			options?: { onAssistantChunk?: (chunk: string, fullText: string) => void },
+		) => {
 		if (!text || isStreaming) return;
 
 		// 检查 prompt 是否已加载（plan 和 edit 模式需要）
@@ -212,7 +215,6 @@ export const useChatController = ({
 			return;
 		}
 
-		setInputValue("");
 		setError(null);
 
 		// 当有选中待办时，使用完整的层级上下文（包含所有参数和父子关系）
@@ -282,6 +284,7 @@ export const useChatController = ({
 						return;
 					}
 					assistantContent += chunk;
+					options?.onAssistantChunk?.(chunk, assistantContent);
 					// 使用 flushSync 强制同步更新，确保流式输出效果
 					flushSync(() => {
 						setMessages((prev) =>
@@ -307,6 +310,7 @@ export const useChatController = ({
 						msg.id === assistantMessageId ? { ...msg, content: fallback } : msg,
 					),
 				);
+				assistantContent = fallback;
 			} else if (chatMode === "plan") {
 				const { todos: parsedTodos, error: parseError } =
 					parsePlanTodos(assistantContent);
@@ -355,6 +359,7 @@ export const useChatController = ({
 								: msg,
 						),
 					);
+					assistantContent = `${assistantContent}\n\n${addedText}`;
 				}
 			}
 		} catch (err) {
@@ -381,12 +386,15 @@ export const useChatController = ({
 					),
 				);
 				setError(fallback);
+				assistantContent = fallback;
 			}
 		} finally {
 			abortControllerRef.current = null;
 			setIsStreaming(false);
 		}
-	}, [
+		return assistantContent;
+	},
+	[
 		buildTodoPayloads,
 		chatMode,
 		conversationId,
@@ -394,7 +402,6 @@ export const useChatController = ({
 		editSystemPrompt,
 		effectiveTodos,
 		hasSelection,
-		inputValue,
 		isStreaming,
 		locale,
 		parsePlanTodos,
@@ -403,7 +410,15 @@ export const useChatController = ({
 		tCommon,
 		todos,
 		setConversationId,
-	]);
+	],
+	);
+
+	const handleSend = useCallback(async () => {
+		const text = inputValue.trim();
+		if (!text || isStreaming) return;
+		setInputValue("");
+		await handleSendText(text);
+	}, [handleSendText, inputValue, isStreaming]);
 
 	const handleKeyDown = useCallback(
 		(event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -441,6 +456,7 @@ export const useChatController = ({
 		isComposing,
 		setIsComposing,
 		handleSend,
+		handleSendText,
 		handleStop,
 		handleNewChat,
 		handleLoadSession,

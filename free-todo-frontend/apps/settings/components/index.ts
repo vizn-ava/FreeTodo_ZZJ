@@ -1,4 +1,5 @@
 export { AutoTodoDetectionSection } from "./AutoTodoDetectionSection";
+export { BailianConfigSection } from "./BailianConfigSection";
 export { DifyConfigSection } from "./DifyConfigSection";
 export { DockDisplayModeSection } from "./DockDisplayModeSection";
 export { LlmConfigSection } from "./LlmConfigSection";
