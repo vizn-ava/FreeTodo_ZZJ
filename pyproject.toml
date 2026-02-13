@@ -1,4 +1,4 @@
-[project]
+﻿[project]
 name = "lifetrace"
 version = "0.1.0"
 description = "LifeTrace - A cross-platform screen recording and activity tracking application"
@@ -12,36 +12,36 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "sqlmodel>=0.0.22",
     "alembic>=1.14.0",
-    "python-multipart>=0.0.6",   # 文件上传支持（Form data）
+    "python-multipart>=0.0.6",   # 鏂囦欢涓婁紶鏀寔锛團orm data锛?
     # Screenshot and image processing
     "mss>=9.0.0",
     "Pillow>=10.0.0",
     "imagehash>=4.3.0",
     # OCR processing (rapidocr requires numpy)
     "rapidocr-onnxruntime",
-    "numpy>=1.21.0,<2.0.0", # 限制到 1.x 版本以确保 PyInstaller 兼容性
+    "numpy>=1.21.0,<2.0.0", # 闄愬埗鍒?1.x 鐗堟湰浠ョ‘淇?PyInstaller 鍏煎鎬?
     # Audio processing (for ASR WebSocket stream)
-    # 注意：使用 av 库（faster-whisper 的依赖）进行音频处理，不需要 pydub
-    # Faster-Whisper 语音识别（推荐，已实现）
-    "faster-whisper>=1.0.0", # 实时语音识别，不需要 Visual C++ 构建工具（包含 av 库）
-    # WhisperLiveKit 实时语音识别（超低延迟，支持发言者区分）
-    "whisperlivekit>=0.1.0", # 实时本地语音转文本与翻译，延迟 < 300ms
-    "websockets>=12.0",      # WebSocket 客户端（用于连接 WhisperLiveKit 服务器）
-    "pyannote.audio>=3.1.0", # 说话人分离（可选）
-    # 繁简转换（可选，用于将繁体中文转换为简体）
-    "opencc-python-reimplemented>=0.1.7", # 繁简转换库
-    # FunASR 语音识别（可选，需要 Visual C++ 构建工具）
-    # 如果安装失败，系统音频实时识别功能将不可用
-    # 安装方法：
-    # 1. 安装 Visual C++ 构建工具：https://visualstudio.microsoft.com/visual-cpp-build-tools/
-    # 2. 运行：pip install funasr
-    # "funasr>=1.0.0",  # 注释掉，作为可选依赖
+    # 娉ㄦ剰锛氫娇鐢?av 搴擄紙online-asr 鐨勪緷璧栵級杩涜闊抽澶勭悊锛屼笉闇€瑕?pydub
+    # online-asr 璇煶璇嗗埆锛堟帹鑽愶紝宸插疄鐜帮級
+    "dashscope>=1.24.0", # 瀹炴椂璇煶璇嗗埆锛屼笉闇€瑕?Visual C++ 鏋勫缓宸ュ叿锛堝寘鍚?av 搴擄級
+    "av>=13.0.0",
+    # WhisperLiveKit 瀹炴椂璇煶璇嗗埆锛堣秴浣庡欢杩燂紝鏀寔鍙戣█鑰呭尯鍒嗭級
+    "websockets>=12.0",      # WebSocket 瀹㈡埛绔紙鐢ㄤ簬杩炴帴 WhisperLiveKit 鏈嶅姟鍣級
+    "pyannote.audio>=3.1.0", # 璇磋瘽浜哄垎绂伙紙鍙€夛級
+    # 绻佺畝杞崲锛堝彲閫夛紝鐢ㄤ簬灏嗙箒浣撲腑鏂囪浆鎹负绠€浣擄級
+    "opencc-python-reimplemented>=0.1.7", # 绻佺畝杞崲搴?
+    # FunASR 璇煶璇嗗埆锛堝彲閫夛紝闇€瑕?Visual C++ 鏋勫缓宸ュ叿锛?
+    # 濡傛灉瀹夎澶辫触锛岀郴缁熼煶棰戝疄鏃惰瘑鍒姛鑳藉皢涓嶅彲鐢?
+    # 瀹夎鏂规硶锛?
+    # 1. 瀹夎 Visual C++ 鏋勫缓宸ュ叿锛歨ttps://visualstudio.microsoft.com/visual-cpp-build-tools/
+    # 2. 杩愯锛歱ip install funasr
+    # "funasr>=1.0.0",  # 娉ㄩ噴鎺夛紝浣滀负鍙€変緷璧?
     # Data processing
     "pyyaml>=6.0",
-    "sentence-transformers>=2.2.0", # 文本嵌入模型
-    "chromadb>=0.4.0",              # 向量数据库
-    "scipy>=1.9.0",                 # 科学计算（用于余弦距离）
-    "hdbscan>=0.8.0",               # 文本聚类算法
+    "sentence-transformers>=2.2.0", # 鏂囨湰宓屽叆妯″瀷
+    "chromadb>=0.4.0",              # 鍚戦噺鏁版嵁搴?
+    "scipy>=1.9.0",                 # 绉戝璁＄畻锛堢敤浜庝綑寮﹁窛绂伙級
+    "hdbscan>=0.8.0",               # 鏂囨湰鑱氱被绠楁硶
     # Scheduler
     "apscheduler>=3.10.0",
     # Utils
@@ -61,19 +61,19 @@ dependencies = [
     "pywin32>=306; sys_platform == 'win32'",
 ]
 
-# Ruff 配置 - Python linter 和 formatter
+# Ruff 閰嶇疆 - Python linter 鍜?formatter
 [tool.ruff]
-# 每行最大字符数（默认 88，可以根据需要调整）
+# 姣忚鏈€澶у瓧绗︽暟锛堥粯璁?88锛屽彲浠ユ牴鎹渶瑕佽皟鏁达級
 line-length = 100
 
-# 目标 Python 版本
+# 鐩爣 Python 鐗堟湰
 target-version = "py313"
 
-# 排除的目录
+# 鎺掗櫎鐨勭洰褰?
 exclude = [".git", ".venv", "__pycache__", "build", "dist", "*.egg-info"]
 
 [tool.ruff.lint]
-# 启用的规则集
+# 鍚敤鐨勮鍒欓泦
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -82,54 +82,56 @@ select = [
     "B",   # flake8-bugbear
     "C4",  # flake8-comprehensions
     "UP",  # pyupgrade
-    "PLR", # Pylint refactoring (包含复杂度检查)
-    "C90", # mccabe (复杂度检查)
+    "PLR", # Pylint refactoring (鍖呭惈澶嶆潅搴︽鏌?
+    "C90", # mccabe (澶嶆潅搴︽鏌?
 ]
 
-# 忽略的规则
+# 蹇界暐鐨勮鍒?
 ignore = [
-    "E501", # 行太长（已经通过 line-length 控制）
-    "B008", # 允许在函数参数默认值中使用函数调用（FastAPI Depends 模式）
+    "E501", # 琛屽お闀匡紙宸茬粡閫氳繃 line-length 鎺у埗锛?
+    "B008", # 鍏佽鍦ㄥ嚱鏁板弬鏁伴粯璁ゅ€间腑浣跨敤鍑芥暟璋冪敤锛團astAPI Depends 妯″紡锛?
 ]
 
-# Pylint 复杂度配置
+# Pylint 澶嶆潅搴﹂厤缃?
 [tool.ruff.lint.pylint]
-# 函数最大语句数（软限制：50，硬限制：100）
+# 鍑芥暟鏈€澶ц鍙ユ暟锛堣蒋闄愬埗锛?0锛岀‖闄愬埗锛?00锛?
 max-statements = 50
-# 函数最大参数数
+# 鍑芥暟鏈€澶у弬鏁版暟
 max-args = 7
-# 函数最大返回语句数
+# 鍑芥暟鏈€澶ц繑鍥炶鍙ユ暟
 max-returns = 6
-# 函数最大分支数
+# 鍑芥暟鏈€澶у垎鏀暟
 max-branches = 12
-# 类中最大公共方法数（帮助控制单个文件大小）
+# 绫讳腑鏈€澶у叕鍏辨柟娉曟暟锛堝府鍔╂帶鍒跺崟涓枃浠跺ぇ灏忥級
 max-public-methods = 20
 
-# McCabe 复杂度配置
+# McCabe 澶嶆潅搴﹂厤缃?
 [tool.ruff.lint.mccabe]
-# 最大圈复杂度（软限制：10，硬限制：15）
+# 鏈€澶у湀澶嶆潅搴︼紙杞檺鍒讹細10锛岀‖闄愬埗锛?5锛?
 max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
-# 测试文件可以使用 assert
+# 娴嬭瘯鏂囦欢鍙互浣跨敤 assert
 "tests/*.py" = ["S101"]
 
 [tool.ruff.format]
-# 使用双引号
+# 浣跨敤鍙屽紩鍙?
 quote-style = "double"
 
-# 缩进使用 4 个空格
+# 缂╄繘浣跨敤 4 涓┖鏍?
 indent-style = "space"
 
-# uv 配置 - 包管理器镜像源
+# uv 閰嶇疆 - 鍖呯鐞嗗櫒闀滃儚婧?
 [tool.uv]
-# 使用清华大学 PyPI 镜像源（国内访问速度快）
+# 浣跨敤娓呭崕澶у PyPI 闀滃儚婧愶紙鍥藉唴璁块棶閫熷害蹇級
 index-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 
 [dependency-groups]
-# 开发工具
+# 寮€鍙戝伐鍏?
 dev = [
     "pre-commit>=4.4.0",
     "ruff>=0.14.4",
     "pyinstaller>=6.0.0",
 ]
+
+

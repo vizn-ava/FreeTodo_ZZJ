@@ -1,8 +1,8 @@
-# FreeTodo Handoff (Voice Input + Bailian Realtime Voice Chat)
+﻿# FreeTodo Handoff (Voice Input + Bailian Realtime Voice Chat)
 
 ## 1. Scope
 - This handoff build includes two production-facing voice features:
-- Hold-to-talk voice input for text fields (ASR via faster-whisper).
+- Hold-to-talk voice input for text fields (online ASR via Bailian).
 - Dedicated realtime voice chat panel powered by Bailian via backend WebSocket proxy.
 
 ## 2. Delivered Capabilities
@@ -66,4 +66,5 @@ pnpm dev
 - `DASHSCOPE_API_KEY`
 - `BAILIAN_WORKSPACE_ID`
 - `BAILIAN_APP_ID`
+
 

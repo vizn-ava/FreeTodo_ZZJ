@@ -114,16 +114,20 @@ async def quick_transcription(
 
     try:
         service = get_audio_transcription_service()
+        diarization_enabled = diarization if diarization is not None else False
         result = service.transcribe(
             file_path,
             language=language,
-            diarization_enabled=diarization,
+            diarization_enabled=diarization_enabled,
         )
         return {
             "status": "done",
             "language": result.get("language"),
             "segments": result.get("segments", []),
         }
+    except Exception as exc:
+        logger.exception(f"Quick transcription failed: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
         try:
             if os.path.exists(file_path):

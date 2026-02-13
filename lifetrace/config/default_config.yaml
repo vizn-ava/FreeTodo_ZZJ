@@ -107,18 +107,16 @@ jobs:
     enabled: false # 是否启用音频转写任务（默认关闭）
     interval: 10 # 扫描待处理音频的间隔（秒）
 
-# 音频转写（离线）
+# 音频转写（阿里云百炼在线 ASR）
 audio_transcription:
   enabled: true
-  model: small
-  device: auto
-  compute_type: auto
-  beam_size: 5
-  language: auto
+  provider: bailian
+  language: zh
   normalize_to_simplified: true
-  vad_filter: true
-  vad_parameters:
-    min_silence_duration_ms: 500
+  bailian:
+    model: paraformer-realtime-v2
+    sample_rate: 16000
+    format: wav
   diarization:
     enabled: false
     model: pyannote/speaker-diarization-3.1

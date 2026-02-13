@@ -42,18 +42,25 @@ export function useVoiceInput({
 
 	const mimeType = useMemo(() => pickSupportedMimeType(), []);
 
-	const cleanup = useCallback(() => {
-		if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-			mediaRecorderRef.current.stop();
+	const stopStreamTracks = useCallback(() => {
+		if (!streamRef.current) return;
+		for (const track of streamRef.current.getTracks()) {
+			track.stop();
 		}
-		if (streamRef.current) {
-			for (const track of streamRef.current.getTracks()) {
-				track.stop();
-			}
-			streamRef.current = null;
-		}
-		mediaRecorderRef.current = null;
+		streamRef.current = null;
 	}, []);
+
+	const cleanup = useCallback(() => {
+		if (mediaRecorderRef.current) {
+			// Component unmount cleanup: stop recorder without uploading partial data.
+			mediaRecorderRef.current.onstop = null;
+			if (mediaRecorderRef.current.state !== "inactive") {
+				mediaRecorderRef.current.stop();
+			}
+		}
+		stopStreamTracks();
+		mediaRecorderRef.current = null;
+	}, [stopStreamTracks]);
 
 	const uploadBlob = useCallback(
 		async (blob: Blob) => {
@@ -61,30 +68,47 @@ export function useVoiceInput({
 			onStatusChange?.("transcribing");
 			setError(null);
 			try {
-				const formData = new FormData();
-				const ext = blob.type.includes("ogg") ? "ogg" : "webm";
-				const file = new File([blob], `voice.${ext}`, { type: blob.type });
-				formData.append("file", file);
+				const requestTranscription = async (targetLanguage?: string) => {
+					const formData = new FormData();
+					const ext = blob.type.includes("ogg") ? "ogg" : "webm";
+					const file = new File([blob], `voice.${ext}`, { type: blob.type });
+					formData.append("file", file);
+					const url = targetLanguage
+						? `${endpoint}?language=${encodeURIComponent(targetLanguage)}`
+						: endpoint;
+					const response = await fetch(url, {
+						method: "POST",
+						body: formData,
+					});
+					if (!response.ok) {
+						let detail = "";
+						try {
+							const payload = await response.json();
+							detail = payload?.detail ? String(payload.detail) : "";
+						} catch {
+							detail = "";
+						}
+						throw new Error(
+							detail ? `HTTP ${response.status}: ${detail}` : `HTTP ${response.status}`,
+						);
+					}
+					return response.json();
+				};
 
-				const url = language ? `${endpoint}?language=${encodeURIComponent(language)}` : endpoint;
-				const response = await fetch(url, {
-					method: "POST",
-					body: formData,
-				});
+				const data = await requestTranscription(language);
+				const toText = (payload: unknown) => {
+					const segments = ((payload as { segments?: Array<{ text_content?: string; textContent?: string }> })?.segments || []);
+					return segments
+						.map((segment) => segment.textContent ?? segment.text_content ?? "")
+						.filter(Boolean)
+						.join(" ");
+				};
 
-				if (!response.ok) {
-					throw new Error(`HTTP ${response.status}`);
+				let text = toText(data);
+				if (!text && language) {
+					const retryData = await requestTranscription(undefined);
+					text = toText(retryData);
 				}
-
-				const data = await response.json();
-				const segments = (data?.segments || []) as Array<{
-					text_content?: string;
-					textContent?: string;
-				}>;
-				const text = segments
-					.map((segment) => segment.textContent ?? segment.text_content ?? "")
-					.filter(Boolean)
-					.join(" ");
 				if (!text) {
 					setError("empty");
 					return;
@@ -121,14 +145,23 @@ export function useVoiceInput({
 			};
 
 			recorder.onstop = () => {
+				stopStreamTracks();
 				const blob = new Blob(chunksRef.current, {
 					type: recorder.mimeType || "audio/webm",
 				});
 				chunksRef.current = [];
+				if (blob.size === 0) {
+					setError("empty");
+					setIsRecording(false);
+					onStatusChange?.(null);
+					mediaRecorderRef.current = null;
+					return;
+				}
+				mediaRecorderRef.current = null;
 				void uploadBlob(blob);
 			};
 
-			recorder.start();
+			recorder.start(250);
 			setIsRecording(true);
 			onStatusChange?.("recording");
 		} catch (err) {
@@ -136,15 +169,25 @@ export function useVoiceInput({
 			setError("permission");
 			cleanup();
 		}
-	}, [cleanup, isTranscribing, mimeType, uploadBlob, onStatusChange]);
+	}, [cleanup, isTranscribing, mimeType, uploadBlob, onStatusChange, stopStreamTracks]);
 
 	const stopRecording = useCallback(() => {
-		if (!mediaRecorderRef.current) return;
+		const recorder = mediaRecorderRef.current;
+		if (!recorder) return;
 		setIsRecording(false);
 		onStatusChange?.(null);
-		mediaRecorderRef.current.stop();
-		cleanup();
-	}, [cleanup, onStatusChange]);
+		if (recorder.state !== "inactive") {
+			try {
+				recorder.requestData();
+			} catch {
+				// ignore
+			}
+			recorder.stop();
+		} else {
+			stopStreamTracks();
+			mediaRecorderRef.current = null;
+		}
+	}, [onStatusChange, stopStreamTracks]);
 
 	const toggleRecording = useCallback(() => {
 		if (isRecording) {
