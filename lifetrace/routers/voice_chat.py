@@ -169,6 +169,12 @@ async def proxy_bailian_voice_chat(websocket: WebSocket):
     await websocket.accept()
     config = _resolve_bailian_config()
     if not config:
+        logger.warning(
+            "Bailian WS: config missing. api_key=%s, workspace_id=%s, app_id=%s",
+            bool(os.getenv("DASHSCOPE_API_KEY") or os.getenv("BAILIAN_API_KEY") or settings.get("bailian.api_key", "")),
+            bool(settings.get("bailian.workspace_id", "")),
+            bool(settings.get("bailian.app_id", "")),
+        )
         await websocket.send_json(
             {
                 "header": {"event": "TaskFailed"},
@@ -181,6 +187,7 @@ async def proxy_bailian_voice_chat(websocket: WebSocket):
         await websocket.close(code=1008)
         return
 
+    logger.info("Bailian WS: config OK, connecting to upstream (workspace=%s, app=%s)", config["workspace_id"], config["app_id"])
     uri = f"{BAILIAN_WS_URL}?workspace_id={config['workspace_id']}&app_id={config['app_id']}"
     upstream = None
     try:

@@ -310,8 +310,8 @@ export async function fetchNotification(
 			return null;
 		}
 
-		const data = JSON.parse(text) as NotificationResponse;
-		if (!data.title && !data.content) {
+		const data = JSON.parse(text) as NotificationResponse | null;
+		if (!data || (!data.title && !data.content)) {
 			return null;
 		}
 

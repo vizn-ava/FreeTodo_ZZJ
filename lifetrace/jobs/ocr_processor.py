@@ -5,7 +5,6 @@ OCR 处理器模块
 
 import hashlib
 import os
-import sys
 import time
 
 from lifetrace.storage import get_session, ocr_mgr, screenshot_mgr
@@ -31,10 +30,15 @@ try:
     from rapidocr_onnxruntime import RapidOCR  # noqa: F401
 
     RAPIDOCR_AVAILABLE = True
-except ImportError:
+except Exception as e:
     RAPIDOCR_AVAILABLE = False
-    logger.error("RapidOCR 未安装！请运行: pip install rapidocr-onnxruntime")
-    sys.exit(1)
+    # Do NOT exit the whole backend process here.
+    # OCR is an optional background capability; the API server should still start.
+    logger.error(
+        "RapidOCR 导入失败，OCR 功能将被禁用。请在当前 Python 环境中安装/修复: rapidocr-onnxruntime",
+        exc_info=True,
+    )
+    logger.error(f"RapidOCR 导入异常信息: {e!r}")
 
 
 def preprocess_image(image_path: str) -> "np.ndarray":
@@ -46,6 +50,8 @@ def preprocess_image(image_path: str) -> "np.ndarray":
     Returns:
         预处理后的图像数组
     """
+    if not RAPIDOCR_AVAILABLE:
+        raise RuntimeError("RapidOCR 不可用：OCR 功能已禁用")
     with Image.open(image_path) as img:
         img = img.convert("RGB")
         img.thumbnail(DEFAULT_IMAGE_MAX_SIZE, Image.Resampling.LANCZOS)

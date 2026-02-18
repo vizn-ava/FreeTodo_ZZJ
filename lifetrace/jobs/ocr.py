@@ -163,6 +163,9 @@ def execute_ocr_task():
     Returns:
         处理成功的截图数量
     """
+    if not RAPIDOCR_AVAILABLE:
+        logger.warning("RapidOCR 不可用：跳过 OCR 任务（请安装/修复 rapidocr-onnxruntime）")
+        return 0
     try:
         ocr, vector_service = _ensure_ocr_initialized()
         unprocessed_screenshots = get_unprocessed_screenshots(logger)
@@ -190,6 +193,9 @@ def execute_ocr_task():
 
 def ocr_service():
     """主函数 - 基于数据库驱动的OCR处理（传统模式，独立运行）"""
+    if not RAPIDOCR_AVAILABLE:
+        logger.error("RapidOCR 不可用：无法启动 OCR 服务（请安装/修复 rapidocr-onnxruntime）")
+        return
     logger.info("LifeTrace 简化OCR处理器启动...")
 
     _ensure_database_initialized()
