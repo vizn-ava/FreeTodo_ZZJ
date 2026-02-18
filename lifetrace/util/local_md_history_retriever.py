@@ -272,24 +272,32 @@ class LocalMdHistoryRetriever:
         blocks: list[HistoryBlock] = []
         cur_header: str | None = None
         cur_role: str | None = None
+        cur_tag: str | None = None  # header "rest" (role or "📋 todo/created" etc.)
         cur_ts: datetime | None = None
         buf: list[str] = []
 
-        header_re = re.compile(r"^###\s+\[(?P<ts>[^\]]+)\]\s+(?P<role>\w+)\s*$")
+        # Support both legacy chat blocks:
+        #   ### [YYYY-MM-DD HH:MM:SS] user|assistant|system
+        # and general modality blocks written by LocalMemoryWriter.append_record:
+        #   ### [YYYY-MM-DD HH:MM:SS] 📋 todo/created
+        header_re = re.compile(r"^###\s+\[(?P<ts>[^\]]+)\]\s+(?P<rest>.+?)\s*$")
 
         def flush():
-            nonlocal cur_header, cur_role, cur_ts, buf
-            if not cur_header or not cur_role:
+            nonlocal cur_header, cur_role, cur_tag, cur_ts, buf
+            if not cur_header:
                 buf = []
                 return
-            content = "\n".join(buf).strip()
+            # Include header "rest" as searchable content so modality-only queries can match,
+            # e.g. "语音聊天" / "voice_chat" / "todo" / "ocr".
+            prelude = f"[{cur_tag}]" if cur_tag else ""
+            content = "\n".join([prelude, *buf]).strip()
             if content:
                 blocks.append(
                     HistoryBlock(
                         file_path=str(md_path),
                         file_date=md_path.parent.name,
                         ts=cur_ts,
-                        role=cur_role,
+                        role=(cur_role or cur_tag or "record"),
                         content=content,
                         header_line=cur_header,
                     )
@@ -301,7 +309,11 @@ class LocalMdHistoryRetriever:
             if m:
                 flush()
                 cur_header = line.strip()
-                cur_role = (m.group("role") or "").strip()
+                rest = (m.group("rest") or "").strip()
+                # Derive role for scoring/formatting: prefer explicit user/assistant/system headings.
+                rest_first = (rest.split(" ", 1)[0] if rest else "").strip().lower()
+                cur_role = rest_first if rest_first in {"user", "assistant", "system"} else None
+                cur_tag = rest
                 ts_raw = (m.group("ts") or "").strip()
                 cur_ts = None
                 try:
@@ -314,11 +326,13 @@ class LocalMdHistoryRetriever:
                 flush()
                 cur_header = None
                 cur_role = None
+                cur_tag = None
                 cur_ts = None
                 continue
             if cur_header:
-                # skip the meta line starting with ">"
+                # Keep meta line content as searchable content (strip the markdown quote prefix).
                 if line.strip().startswith("> "):
+                    buf.append(line.strip()[2:])
                     continue
                 buf.append(line)
 
