@@ -13,6 +13,7 @@ import websockets
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
+from lifetrace.util.local_memory_writer import LocalMemoryWriter, MemoryRecord
 from lifetrace.util.logging_config import get_logger
 from lifetrace.util.settings import settings
 
@@ -217,6 +218,30 @@ async def proxy_bailian_voice_chat(websocket: WebSocket):
         await websocket.close(code=1011)
         return
 
+    # Collect transcript text from upstream messages for md writing
+    transcript_parts: list[dict[str, str]] = []  # [{"role": "user"|"assistant", "text": "..."}]
+
+    def _extract_transcript(raw_message: str) -> None:
+        """Best-effort extract transcript text from Bailian upstream JSON."""
+        try:
+            data = json.loads(raw_message)
+            header = data.get("header", {})
+            payload = data.get("payload", {})
+            event = header.get("event", "")
+
+            # Bailian sends "result-generated" events with text output
+            if event == "result-generated":
+                output = payload.get("output", {})
+                text = output.get("text", "")
+                if text and text.strip():
+                    # Determine role from output or default to assistant
+                    role = "assistant"
+                    if output.get("role") == "user" or output.get("content_type") == "input_text":
+                        role = "user"
+                    transcript_parts.append({"role": role, "text": text.strip()})
+        except Exception:  # noqa: BLE001
+            pass
+
     async def client_to_upstream():
         try:
             while True:
@@ -245,6 +270,7 @@ async def proxy_bailian_voice_chat(websocket: WebSocket):
                 else:
                     if msg_count <= 3:
                         logger.info(f"Bailian WS: upstream -> client msg#{msg_count}: {message[:200] if len(message) > 200 else message}")
+                    _extract_transcript(message)
                     await websocket.send_text(message)
             logger.info(f"Bailian WS: upstream closed after {msg_count} messages")
         except Exception as exc:  # noqa: BLE001
@@ -271,3 +297,35 @@ async def proxy_bailian_voice_chat(websocket: WebSocket):
         await websocket.close()
     except Exception:
         pass
+
+    # Best-effort: write voice chat transcript to local markdown memory
+    _write_voice_chat_to_md(transcript_parts)
+
+
+def _write_voice_chat_to_md(transcript_parts: list[dict[str, str]]) -> None:
+    """Best-effort write voice chat transcript to local markdown memory."""
+    try:
+        writer = LocalMemoryWriter()
+        if not writer.is_enabled() or not transcript_parts:
+            return
+
+        lines: list[str] = []
+        for part in transcript_parts:
+            role_label = "🧑 用户" if part["role"] == "user" else "🤖 助手"
+            lines.append(f"**{role_label}**: {part['text']}")
+
+        content = "\n\n".join(lines)
+        if not content.strip():
+            return
+
+        writer.append_record(
+            MemoryRecord(
+                source="voice_chat",
+                action="session_ended",
+                title=f"语音聊天对话 ({len(transcript_parts)} 条消息)",
+                content=content,
+                extra={"messages": str(len(transcript_parts))},
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Voice chat md write skipped: %s", exc)

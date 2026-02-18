@@ -8,9 +8,38 @@ from datetime import datetime, timedelta
 from lifetrace.llm.activity_summary_service import activity_summary_service
 from lifetrace.storage import activity_mgr
 from lifetrace.storage.models import Event
+from lifetrace.util.local_memory_writer import LocalMemoryWriter, MemoryRecord
 from lifetrace.util.logging_config import get_logger
 
 logger = get_logger()
+_memory_writer = LocalMemoryWriter()
+
+
+def _write_activity_to_md(
+    title: str, summary: str, start_time: datetime, end_time: datetime | None, event_count: int,
+) -> None:
+    """Best-effort write activity summary to local markdown memory."""
+    try:
+        if not _memory_writer.is_enabled():
+            return
+        extra: dict[str, str] = {"events": str(event_count)}
+        if start_time:
+            extra["start"] = start_time.strftime("%H:%M")
+        if end_time:
+            extra["end"] = end_time.strftime("%H:%M")
+
+        _memory_writer.append_record(
+            MemoryRecord(
+                source="activity",
+                action="aggregated",
+                title=title,
+                content=summary,
+                extra=extra,
+                ts=start_time,
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Activity md write skipped: %s", exc)
 
 # 常量定义
 LONG_EVENT_DURATION_MINUTES = 30  # 长事件判断标准（分钟）
@@ -110,6 +139,7 @@ def create_activity_for_long_event(event: Event) -> bool:
 
         if activity_id:
             logger.info(f"为长事件 {event.id} 创建活动 {activity_id}: {result['title']}")
+            _write_activity_to_md(result["title"], result["summary"], event.start_time, event.end_time, 1)
             return True
         else:
             logger.error(f"为长事件 {event.id} 创建活动失败")
@@ -173,6 +203,7 @@ def create_activity_for_window(window_start: datetime, window_events: list[Event
             logger.info(
                 f"为窗口 {window_start} 创建活动 {activity_id}: {result['title']}，包含 {len(event_ids)} 个事件"
             )
+            _write_activity_to_md(result["title"], result["summary"], window_start, window_end, len(event_ids))
             return True
         else:
             logger.error(f"为窗口 {window_start} 创建活动失败")

@@ -9,6 +9,7 @@ from fastapi import HTTPException
 
 from lifetrace.repositories.interfaces import ITodoRepository
 from lifetrace.schemas.todo import TodoCreate, TodoResponse, TodoUpdate
+from lifetrace.util.local_memory_writer import LocalMemoryWriter, MemoryRecord
 from lifetrace.util.logging_config import get_logger
 
 logger = get_logger()
@@ -19,6 +20,38 @@ class TodoService:
 
     def __init__(self, repository: ITodoRepository):
         self.repository = repository
+        self._memory_writer = LocalMemoryWriter()
+
+    def _write_todo_to_md(self, todo: TodoResponse, action: str) -> None:
+        """Best-effort write todo event to local markdown memory."""
+        try:
+            if not self._memory_writer.is_enabled():
+                return
+            extra: dict[str, str] = {"id": str(todo.id), "status": todo.status}
+            if todo.priority and todo.priority != "none":
+                extra["priority"] = todo.priority
+            if todo.deadline:
+                extra["deadline"] = todo.deadline.strftime("%Y-%m-%d %H:%M")
+            if todo.tags:
+                extra["tags"] = ", ".join(todo.tags)
+
+            parts: list[str] = []
+            if todo.description:
+                parts.append(todo.description)
+            if todo.user_notes:
+                parts.append(f"备注: {todo.user_notes}")
+
+            self._memory_writer.append_record(
+                MemoryRecord(
+                    source="todo",
+                    action=action,
+                    title=todo.name,
+                    content="\n".join(parts) if parts else "",
+                    extra=extra,
+                )
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Todo md write skipped: %s", exc)
 
     def get_todo(self, todo_id: int) -> TodoResponse:
         """获取单个 Todo"""
@@ -51,7 +84,9 @@ class TodoService:
         if not todo_id:
             raise HTTPException(status_code=500, detail="创建 todo 失败")
 
-        return self.get_todo(todo_id)
+        todo = self.get_todo(todo_id)
+        self._write_todo_to_md(todo, "created")
+        return todo
 
     def update_todo(self, todo_id: int, data: TodoUpdate) -> TodoResponse:
         """更新 Todo"""
@@ -76,12 +111,28 @@ class TodoService:
         if not self.repository.update(todo_id, **kwargs):
             raise HTTPException(status_code=500, detail="更新 todo 失败")
 
-        return self.get_todo(todo_id)
+        todo = self.get_todo(todo_id)
+        # Determine action: status change is more specific
+        action = "updated"
+        if "status" in kwargs:
+            status_val = kwargs["status"]
+            if status_val == "completed":
+                action = "completed"
+            elif status_val == "canceled":
+                action = "canceled"
+        self._write_todo_to_md(todo, action)
+        return todo
 
     def delete_todo(self, todo_id: int) -> None:
         """删除 Todo"""
-        if not self.repository.get_by_id(todo_id):
+        todo_data = self.repository.get_by_id(todo_id)
+        if not todo_data:
             raise HTTPException(status_code=404, detail="todo 不存在")
+        # Write to md before deleting
+        try:
+            self._write_todo_to_md(TodoResponse(**todo_data), "deleted")
+        except Exception:  # noqa: BLE001
+            pass
         if not self.repository.delete(todo_id):
             raise HTTPException(status_code=500, detail="删除 todo 失败")
 

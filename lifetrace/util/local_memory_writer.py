@@ -1,9 +1,18 @@
 """
 Local markdown memory writer.
 
-Goal: append the final text stream (chat messages) into project-local storage:
+Goal: append all modality data into project-local storage:
 
   lifetrace/data/local_memory/{user_key}/{YYYY-MM-DD}/final_text.md
+
+Supported modalities:
+- chat (user/assistant messages)
+- todo (create/update/complete/delete)
+- journal (create/update)
+- ocr (screenshot text recognition)
+- activity (AI activity summaries)
+- audio_transcription (speech-to-text)
+- voice_chat (realtime voice conversation)
 
 Notes
 - `lifetrace/data/` is runtime data (gitignored). Folder is created on demand.
@@ -15,7 +24,7 @@ from __future__ import annotations
 import json
 import os
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -56,12 +65,36 @@ def _parse_user_key_from_metadata(metadata: str | None) -> str | None:
 
 @dataclass(frozen=True)
 class MemoryAppendEvent:
+    """Chat message append event (backward compatible)."""
     session_id: str
     role: str
     content: str
     token_count: int | None = None
     model: str | None = None
     metadata: str | None = None
+    ts: datetime | None = None
+    user_key: str | None = None
+
+
+@dataclass(frozen=True)
+class MemoryRecord:
+    """General-purpose memory record for any modality.
+
+    Attributes:
+        source: modality identifier, e.g. "todo", "journal", "ocr", "activity",
+                "audio_transcription", "voice_chat"
+        action: action type, e.g. "created", "updated", "completed", "deleted"
+        title: short title / summary line
+        content: main body text
+        extra: optional key-value metadata pairs shown as blockquote
+        ts: timestamp (defaults to now)
+        user_key: user key for directory partitioning
+    """
+    source: str
+    action: str
+    title: str
+    content: str
+    extra: dict[str, str] = field(default_factory=dict)
     ts: datetime | None = None
     user_key: str | None = None
 
@@ -76,8 +109,32 @@ class LocalMemoryWriter:
     def is_enabled(self) -> bool:
         return self._enabled
 
+    # ----- internal helpers -----
+
+    def _resolve_md_path(self, ts: datetime, user_key: str | None = None) -> Path:
+        """Resolve the daily final_text.md path."""
+        date_dir = ts.strftime("%Y-%m-%d")
+        env_user_key = os.getenv("LIFETRACE_USER_KEY")
+        safe_key = _safe_user_key(user_key or (env_user_key or "") or "default")
+        root = get_user_data_dir() / self._root_name / safe_key / date_dir
+        root.mkdir(parents=True, exist_ok=True)
+        return root / "final_text.md"
+
+    def _write_block(self, md_path: Path, block_lines: list[str]) -> Path | None:
+        """Write a block of lines to the md file."""
+        try:
+            with _WRITE_LOCK:
+                with md_path.open("a", encoding="utf-8", newline="\n") as f:
+                    f.write("\n".join(block_lines))
+            return md_path
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Local memory append failed: %s", exc)
+            return None
+
+    # ----- chat message append (backward compatible) -----
+
     def append(self, event: MemoryAppendEvent) -> Path | None:
-        """Append an event block into the daily final_text.md. Returns file path on success."""
+        """Append a chat message block into the daily final_text.md."""
         if not self._enabled:
             return None
 
@@ -86,23 +143,15 @@ class LocalMemoryWriter:
             return None
 
         ts = event.ts or datetime.now()
-        date_dir = ts.strftime("%Y-%m-%d")
         ts_str = ts.strftime("%Y-%m-%d %H:%M:%S")
 
-        env_user_key = os.getenv("LIFETRACE_USER_KEY")
         meta_user_key = _parse_user_key_from_metadata(event.metadata)
-        user_key = _safe_user_key(event.user_key or meta_user_key or (env_user_key or "") or "default")
+        user_key = event.user_key or meta_user_key
+        md_path = self._resolve_md_path(ts, user_key)
 
-        root = get_user_data_dir() / self._root_name / user_key / date_dir
-        root.mkdir(parents=True, exist_ok=True)
-
-        md_path = root / "final_text.md"
-
-        # Markdown block format: compact, append-friendly.
         block_lines: list[str] = []
         block_lines.append(f"### [{ts_str}] {event.role}")
         block_lines.append("")
-        # Minimal metadata (optional)
         meta_parts: list[str] = [f"session_id={event.session_id}"]
         if event.model:
             meta_parts.append(f"model={event.model}")
@@ -115,14 +164,66 @@ class LocalMemoryWriter:
         block_lines.append("---")
         block_lines.append("")
 
-        try:
-            # Single-process safety; multi-process not guaranteed (acceptable for simple local memory).
-            with _WRITE_LOCK:
-                with md_path.open("a", encoding="utf-8", newline="\n") as f:
-                    f.write("\n".join(block_lines))
-            return md_path
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Local memory append failed: %s", exc)
+        return self._write_block(md_path, block_lines)
+
+    # ----- general-purpose record append -----
+
+    def append_record(self, record: MemoryRecord) -> Path | None:
+        """Append a general modality record into the daily final_text.md.
+
+        Format:
+            ### [2026-02-18 14:30:00] 📋 todo/created
+            > id=42; priority=high
+            **待办标题**
+            待办描述内容...
+            ---
+        """
+        if not self._enabled:
             return None
+
+        content = (record.content or "").rstrip()
+        title = (record.title or "").strip()
+        if not content and not title:
+            return None
+
+        # Emoji prefix per source for visual distinction
+        _SOURCE_EMOJI = {
+            "todo": "📋",
+            "journal": "📓",
+            "ocr": "🔍",
+            "activity": "📊",
+            "audio_transcription": "🎙️",
+            "voice_chat": "🗣️",
+        }
+        emoji = _SOURCE_EMOJI.get(record.source, "📝")
+
+        ts = record.ts or datetime.now()
+        ts_str = ts.strftime("%Y-%m-%d %H:%M:%S")
+        md_path = self._resolve_md_path(ts, record.user_key)
+
+        block_lines: list[str] = []
+        block_lines.append(f"### [{ts_str}] {emoji} {record.source}/{record.action}")
+        block_lines.append("")
+
+        # Metadata line
+        if record.extra:
+            meta_parts = [f"{k}={v}" for k, v in record.extra.items()]
+            block_lines.append(f"> {'; '.join(meta_parts)}")
+            block_lines.append("")
+
+        # Title (bold)
+        if title:
+            block_lines.append(f"**{title}**")
+            block_lines.append("")
+
+        # Body content
+        if content:
+            block_lines.append(content)
+            block_lines.append("")
+
+        block_lines.append("---")
+        block_lines.append("")
+
+        return self._write_block(md_path, block_lines)
 
 

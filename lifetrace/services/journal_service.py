@@ -14,6 +14,7 @@ from lifetrace.schemas.journal import (
     JournalResponse,
     JournalUpdate,
 )
+from lifetrace.util.local_memory_writer import LocalMemoryWriter, MemoryRecord
 from lifetrace.util.logging_config import get_logger
 
 logger = get_logger()
@@ -24,6 +25,30 @@ class JournalService:
 
     def __init__(self, repository: IJournalRepository):
         self.repository = repository
+        self._memory_writer = LocalMemoryWriter()
+
+    def _write_journal_to_md(self, journal: JournalResponse, action: str) -> None:
+        """Best-effort write journal event to local markdown memory."""
+        try:
+            if not self._memory_writer.is_enabled():
+                return
+            extra: dict[str, str] = {"id": str(journal.id)}
+            if journal.date:
+                extra["date"] = journal.date.strftime("%Y-%m-%d") if isinstance(journal.date, datetime) else str(journal.date)
+            if journal.tags:
+                extra["tags"] = ", ".join(t.tag_name for t in journal.tags)
+
+            self._memory_writer.append_record(
+                MemoryRecord(
+                    source="journal",
+                    action=action,
+                    title=journal.name,
+                    content=journal.user_notes or "",
+                    extra=extra,
+                )
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Journal md write skipped: %s", exc)
 
     def get_journal(self, journal_id: int) -> JournalResponse:
         """获取单个日记"""
@@ -59,8 +84,10 @@ class JournalService:
         if not journal_id:
             raise HTTPException(status_code=500, detail="创建日记失败")
 
+        journal = self.get_journal(journal_id)
         logger.info(f"成功创建日记: {journal_id} - {data.name}")
-        return self.get_journal(journal_id)
+        self._write_journal_to_md(journal, "created")
+        return journal
 
     def update_journal(self, journal_id: int, data: JournalUpdate) -> JournalResponse:
         """更新日记"""
@@ -77,8 +104,10 @@ class JournalService:
         ):
             raise HTTPException(status_code=500, detail="更新日记失败")
 
+        journal = self.get_journal(journal_id)
         logger.info(f"成功更新日记: {journal_id}")
-        return self.get_journal(journal_id)
+        self._write_journal_to_md(journal, "updated")
+        return journal
 
     def delete_journal(self, journal_id: int) -> None:
         """删除日记"""

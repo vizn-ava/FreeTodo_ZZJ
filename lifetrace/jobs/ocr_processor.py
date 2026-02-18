@@ -188,8 +188,43 @@ def save_to_database(image_path: str, ocr_result: dict, vector_service=None):
         if vector_service and vector_service.is_enabled() and ocr_result_id:
             _add_to_vector_database(ocr_result_id, screenshot_id, vector_service)
 
+        # Best-effort: write OCR text to local markdown memory
+        _write_ocr_to_md(image_path, ocr_result, screenshot_id)
+
     except Exception as e:
         logger.error(f"保存OCR结果到数据库失败: {e}")
+
+
+def _write_ocr_to_md(image_path: str, ocr_result: dict, screenshot_id: int) -> None:
+    """Best-effort write OCR result to local markdown memory."""
+    try:
+        from lifetrace.util.local_memory_writer import LocalMemoryWriter, MemoryRecord
+
+        writer = LocalMemoryWriter()
+        if not writer.is_enabled():
+            return
+        text_content = (ocr_result.get("text_content") or "").strip()
+        if not text_content:
+            return
+        extra: dict[str, str] = {"screenshot_id": str(screenshot_id)}
+        if ocr_result.get("language"):
+            extra["language"] = ocr_result["language"]
+        if ocr_result.get("confidence"):
+            extra["confidence"] = f"{ocr_result['confidence']:.2f}"
+        if ocr_result.get("processing_time"):
+            extra["time"] = f"{ocr_result['processing_time']:.2f}s"
+        filename = os.path.basename(image_path)
+        writer.append_record(
+            MemoryRecord(
+                source="ocr",
+                action="recognized",
+                title=f"截图文字识别 ({filename})",
+                content=text_content,
+                extra=extra,
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("OCR md write skipped: %s", exc)
 
 
 def _add_to_vector_database(ocr_result_id: int, screenshot_id: int, vector_service):
