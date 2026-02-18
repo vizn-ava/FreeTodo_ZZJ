@@ -73,6 +73,7 @@ export const useChatController = ({
 		chatMode,
 		conversationId,
 		historyOpen,
+		useLocalMdHistory,
 		setChatMode,
 		setConversationId,
 		setHistoryOpen,
@@ -277,6 +278,7 @@ export const useChatController = ({
 					// agent 模式使用 useRag=false，因为工具调用逻辑在后端独立处理
 					useRag: false,
 					mode: modeForBackend,
+					useLocalMdHistory,
 				},
 				(chunk) => {
 					// 检查是否已取消

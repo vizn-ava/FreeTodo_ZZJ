@@ -13,6 +13,7 @@ class ChatMessage(BaseModel):
     conversation_id: str | None = None  # 会话ID
     use_rag: bool = True  # 是否使用RAG
     mode: str | None = None  # 前端聊天模式（ask/plan/edit/dify_test 等）
+    use_local_md_history: bool = False  # 是否启用本地 md 记忆检索作为上下文（默认关闭）
 
 
 class ChatMessageWithContext(BaseModel):

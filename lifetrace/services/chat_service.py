@@ -11,6 +11,7 @@ from typing import Any
 
 from lifetrace.repositories.interfaces import IChatRepository
 from lifetrace.util.logging_config import get_logger
+from lifetrace.util.local_memory_writer import LocalMemoryWriter, MemoryAppendEvent
 
 logger = get_logger()
 
@@ -23,6 +24,7 @@ class ChatService:
 
     def __init__(self, repository: IChatRepository):
         self.repository = repository
+        self._local_memory_writer = LocalMemoryWriter()
 
     # ===== 会话 ID 生成 =====
 
@@ -188,7 +190,7 @@ class ChatService:
         metadata: str | None = None,
     ) -> dict[str, Any] | None:
         """添加消息到聊天会话（数据库）"""
-        return self.repository.add_message(
+        saved = self.repository.add_message(
             session_id=session_id,
             role=role,
             content=content,
@@ -196,6 +198,24 @@ class ChatService:
             model=model,
             metadata=metadata,
         )
+
+        # Best-effort local markdown memory (final text stream).
+        try:
+            if self._local_memory_writer.is_enabled():
+                self._local_memory_writer.append(
+                    MemoryAppendEvent(
+                        session_id=session_id,
+                        role=role,
+                        content=content,
+                        token_count=token_count,
+                        model=model,
+                        metadata=metadata,
+                    )
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Local memory write skipped due to error: %s", exc)
+
+        return saved
 
     def get_messages(
         self,

@@ -4,6 +4,7 @@ import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useVoiceHotkey } from "@/lib/hooks/useVoiceHotkey";
 import { useVoiceInput } from "@/lib/hooks/useVoiceInput";
+import { useChatStore } from "@/lib/store/chat-store";
 import { cn } from "@/lib/utils";
 
 type InputBoxProps = {
@@ -51,6 +52,8 @@ export function InputBox({
 }: InputBoxProps) {
 	const t = useTranslations("chat");
 	const tVoice = useTranslations("voiceInput");
+	const useLocalMdHistory = useChatStore((state) => state.useLocalMdHistory);
+	const setUseLocalMdHistory = useChatStore((state) => state.setUseLocalMdHistory);
 	const isSendDisabled = !inputValue.trim() || isStreaming;
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const prevInputValueRef = useRef<string>(inputValue);
@@ -137,6 +140,25 @@ export function InputBox({
 	// 右侧按钮组（@ 按钮和发送/停止按钮）
 	const actionButtons = (
 		<div className="flex items-center gap-1">
+			<button
+				type="button"
+				onClick={() => setUseLocalMdHistory(!useLocalMdHistory)}
+				className={cn(
+					"flex h-8 items-center justify-center rounded-lg px-2 text-xs",
+					useLocalMdHistory
+						? "bg-primary text-primary-foreground"
+						: "text-muted-foreground hover:bg-foreground/5",
+					"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+				)}
+				aria-pressed={useLocalMdHistory}
+				title={
+					useLocalMdHistory
+						? "已启用：使用本地 md 记忆检索上下文"
+						: "启用：使用本地 md 记忆检索上下文"
+				}
+			>
+				记忆
+			</button>
 			<button
 				type="button"
 				onClick={voice.toggleRecording}

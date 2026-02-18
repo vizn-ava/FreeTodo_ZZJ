@@ -16,6 +16,7 @@ export interface SendChatParams {
 	conversationId?: string;
 	useRag?: boolean;
 	mode?: string;
+	useLocalMdHistory?: boolean;
 }
 
 /**
@@ -50,6 +51,7 @@ export async function sendChatMessageStream(
 				conversation_id: params.conversationId,
 				use_rag: params.useRag,
 				mode: params.mode,
+				use_local_md_history: params.useLocalMdHistory,
 			}),
 			signal,
 		});

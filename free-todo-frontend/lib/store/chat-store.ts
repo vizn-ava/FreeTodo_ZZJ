@@ -6,9 +6,11 @@ interface ChatStoreState {
 	chatMode: ChatMode;
 	conversationId: string | null;
 	historyOpen: boolean;
+	useLocalMdHistory: boolean;
 	setChatMode: (mode: ChatMode) => void;
 	setConversationId: (id: string | null) => void;
 	setHistoryOpen: (open: boolean) => void;
+	setUseLocalMdHistory: (enabled: boolean) => void;
 }
 
 export const useChatStore = create<ChatStoreState>()(
@@ -17,9 +19,11 @@ export const useChatStore = create<ChatStoreState>()(
 			chatMode: "ask",
 			conversationId: null,
 			historyOpen: false,
+			useLocalMdHistory: false,
 			setChatMode: (mode) => set({ chatMode: mode }),
 			setConversationId: (id) => set({ conversationId: id }),
 			setHistoryOpen: (open) => set({ historyOpen: open }),
+			setUseLocalMdHistory: (enabled) => set({ useLocalMdHistory: enabled }),
 		}),
 		{
 			name: "chat-config",
@@ -48,11 +52,18 @@ export const useChatStore = create<ChatStoreState>()(
 									? state.historyOpen
 									: false;
 
+							// 验证 useLocalMdHistory
+							const useLocalMdHistory: boolean =
+								typeof state.useLocalMdHistory === "boolean"
+									? state.useLocalMdHistory
+									: false;
+
 							return JSON.stringify({
 								state: {
 									chatMode,
 									conversationId,
 									historyOpen,
+									useLocalMdHistory,
 								},
 							});
 						} catch (e) {

@@ -9,6 +9,7 @@ from lifetrace.llm.web_search_service import WebSearchService
 from lifetrace.schemas.chat import ChatMessage, ChatResponse
 from lifetrace.services.chat_service import ChatService
 from lifetrace.services.dify_client import call_dify_chat
+from lifetrace.util.local_md_history_retriever import LocalMdHistoryRetriever
 from lifetrace.util.language import get_language_instruction, get_request_language
 from lifetrace.util.time_utils import get_utc_now
 
@@ -269,6 +270,36 @@ def _create_agent_streaming_response(
                     user_query = parts[1].strip()
                     break
 
+    # 可选：本地 md 记忆检索上下文（仅在前端显式开启时）
+    conversation_history = None
+    try:
+        if getattr(message, "use_local_md_history", False):
+            retriever = LocalMdHistoryRetriever()
+            # 当前工程暂无用户体系：默认使用 env 或 default；如未来需要，可从 message.extra/headers 注入 user_key
+            hist = retriever.retrieve(user_query=user_query, user_key=None)
+            history_context = (hist.get("context") or "").strip()
+            if history_context:
+                conversation_history = [
+                    {
+                        "role": "user",
+                        "content": history_context,
+                    }
+                ]
+                logger.info(
+                    "[local_md_history] enabled mode=%s scanned_files=%s matched=%s",
+                    hist.get("mode"),
+                    hist.get("scanned_files"),
+                    hist.get("matched"),
+                )
+            else:
+                logger.info(
+                    "[local_md_history] enabled but empty mode=%s scanned_files=%s",
+                    hist.get("mode"),
+                    hist.get("scanned_files"),
+                )
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("[local_md_history] failed: %s", exc)
+
     def agent_token_generator():
         total_content = ""
         try:
@@ -276,6 +307,7 @@ def _create_agent_streaming_response(
             for chunk in agent_service.stream_agent_response(
                 user_query=user_query,
                 todo_context=todo_context,
+                conversation_history=conversation_history,
                 lang=lang,
             ):
                 total_content += chunk
