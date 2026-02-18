@@ -187,8 +187,9 @@ async def proxy_bailian_voice_chat(websocket: WebSocket):
         await websocket.close(code=1008)
         return
 
-    logger.info("Bailian WS: config OK, connecting to upstream (workspace=%s, app=%s)", config["workspace_id"], config["app_id"])
+    logger.info(f"Bailian WS: config OK, connecting to upstream (workspace={config['workspace_id']}, app={config['app_id']})")
     uri = f"{BAILIAN_WS_URL}?workspace_id={config['workspace_id']}&app_id={config['app_id']}"
+    logger.info(f"Bailian WS: upstream URI = {uri}")
     upstream = None
     try:
         upstream = await websockets.connect(
@@ -201,8 +202,9 @@ async def proxy_bailian_voice_chat(websocket: WebSocket):
             ping_interval=20,
             ping_timeout=20,
         )
+        logger.info("Bailian WS: upstream connected successfully")
     except Exception as exc:  # noqa: BLE001
-        logger.error("Failed to connect Bailian websocket: %s", exc)
+        logger.error(f"Failed to connect Bailian websocket: {exc}")
         await websocket.send_json(
             {
                 "header": {"event": "TaskFailed"},
@@ -220,25 +222,33 @@ async def proxy_bailian_voice_chat(websocket: WebSocket):
             while True:
                 message = await websocket.receive()
                 if message["type"] == "websocket.disconnect":
+                    logger.info("Bailian WS: client disconnected")
                     break
                 if message.get("text") is not None:
+                    logger.debug(f"Bailian WS: client -> upstream (text, {len(message['text'])} bytes)")
                     await upstream.send(message["text"])
                 elif message.get("bytes") is not None:
+                    logger.debug(f"Bailian WS: client -> upstream (binary, {len(message['bytes'])} bytes)")
                     await upstream.send(message["bytes"])
         except WebSocketDisconnect:
-            pass
+            logger.info("Bailian WS: client WebSocket disconnected")
         except Exception as exc:  # noqa: BLE001
-            logger.debug("Client -> Bailian forwarding ended: %s", exc)
+            logger.warning(f"Client -> Bailian forwarding ended: {exc}")
 
     async def upstream_to_client():
         try:
+            msg_count = 0
             async for message in upstream:
+                msg_count += 1
                 if isinstance(message, bytes):
                     await websocket.send_bytes(message)
                 else:
+                    if msg_count <= 3:
+                        logger.info(f"Bailian WS: upstream -> client msg#{msg_count}: {message[:200] if len(message) > 200 else message}")
                     await websocket.send_text(message)
+            logger.info(f"Bailian WS: upstream closed after {msg_count} messages")
         except Exception as exc:  # noqa: BLE001
-            logger.debug("Bailian -> client forwarding ended: %s", exc)
+            logger.warning(f"Bailian -> client forwarding ended: {exc}")
 
     tasks = [
         asyncio.create_task(client_to_upstream()),
