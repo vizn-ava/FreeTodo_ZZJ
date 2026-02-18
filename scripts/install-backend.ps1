@@ -8,11 +8,28 @@ Write-Host "== FreeTodo / LifeTrace backend install (no uv) =="
 
 # 0) Prefer Python 3.12 (project requirement)
 $PY = $null
-try {
-  $null = py -3.12 -c "import sys; print(sys.version)" 2>$null
-  $PY = "py -3.12"
-} catch {
-  $PY = $null
+function Test-Python312($cmd) {
+  try {
+    $ver = & $cmd -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
+    return ($ver -eq "3.12")
+  } catch {
+    return $false
+  }
+}
+
+# Prefer the official py launcher when available, otherwise fall back to python in PATH.
+if (Get-Command py -ErrorAction SilentlyContinue) {
+  if (Test-Python312 "py -3.12") {
+    $PY = "py -3.12"
+  }
+}
+
+if (-not $PY) {
+  if (Get-Command python -ErrorAction SilentlyContinue) {
+    if (Test-Python312 "python") {
+      $PY = "python"
+    }
+  }
 }
 
 if (-not $PY) {
@@ -28,9 +45,27 @@ if (-not $PY) {
 
 # 1) Ensure venv (using Python 3.12)
 $VENV_PY = Join-Path $ROOT ".venv\Scripts\python.exe"
-if (-not (Test-Path $VENV_PY)) {
-  Write-Host "Creating venv at $ROOT\.venv ..."
-  & py -3.12 -m venv .venv
+$VENV_CFG = Join-Path $ROOT ".venv\pyvenv.cfg"
+$needRecreateVenv = $false
+
+if (-not (Test-Path $VENV_PY)) { $needRecreateVenv = $true }
+if (-not (Test-Path $VENV_CFG)) { $needRecreateVenv = $true }
+
+if (-not $needRecreateVenv) {
+  # Sometimes venv looks present but is broken (e.g. missing pyvenv.cfg, or python cannot start).
+  try {
+    $null = & $VENV_PY -c "import sys; print(sys.prefix)" 2>$null
+  } catch {
+    $needRecreateVenv = $true
+  }
+}
+
+if ($needRecreateVenv) {
+  Write-Host "Recreating venv at $ROOT\.venv ..."
+  if (Test-Path (Join-Path $ROOT ".venv")) {
+    Remove-Item -Recurse -Force (Join-Path $ROOT ".venv")
+  }
+  & $PY -m venv .venv
 }
 
 # 2) Upgrade pip
