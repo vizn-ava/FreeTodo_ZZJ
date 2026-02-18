@@ -5,7 +5,16 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
+
+# Python 3.11+ provides `datetime.UTC`; older versions do not.
+# Keep a local `UTC` alias for compatibility across Python versions.
+try:  # pragma: no cover
+    from datetime import UTC as _UTC  # type: ignore[attr-defined]
+
+    UTC = _UTC
+except ImportError:  # pragma: no cover
+    UTC = timezone.utc
 
 
 def get_utc_now() -> datetime:

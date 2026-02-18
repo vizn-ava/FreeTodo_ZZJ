@@ -1,9 +1,18 @@
 import os
 import re
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from loguru import logger
+
+# Python 3.11+ provides `datetime.UTC`; older versions do not.
+# Keep a local `UTC` alias for compatibility across Python versions.
+try:  # pragma: no cover
+    from datetime import UTC as _UTC  # type: ignore[attr-defined]
+
+    UTC = _UTC
+except ImportError:  # pragma: no cover
+    UTC = timezone.utc
 
 
 def _get_utc_date_string() -> str:

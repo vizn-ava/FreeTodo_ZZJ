@@ -1,0 +1,54 @@
+# Backend runtime dependencies for LifeTrace / FreeTodo
+# Generated from `pyproject.toml` [project].dependencies
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+pydantic>=2.0.0
+sqlalchemy>=2.0.0
+sqlmodel>=0.0.22
+alembic>=1.14.0
+python-multipart>=0.0.6
+
+# Screenshot and image processing
+mss>=9.0.0
+Pillow>=10.0.0
+imagehash>=4.3.0
+
+# OCR (RapidOCR requires numpy)
+rapidocr-onnxruntime
+numpy>=1.21.0,<2.0.0
+
+# Audio / ASR
+dashscope>=1.24.0
+av>=13.0.0
+websockets>=12.0
+
+# Optional: speaker diarization (very heavy; uncomment if needed)
+# pyannote.audio>=3.1.0
+
+# Chinese conversion
+opencc-python-reimplemented>=0.1.7
+
+# Data processing / vector DB / clustering
+pyyaml>=6.0
+sentence-transformers>=2.2.0
+chromadb>=0.4.0
+scipy>=1.9.0
+hdbscan>=0.8.0
+
+# Scheduler / utils
+apscheduler>=3.10.0
+psutil>=5.9.0
+
+# LLM / web search
+openai>=1.0.0
+tavily-python>=0.5.0
+dynaconf[yaml]>=3.2.0
+
+# Logging
+loguru>=0.7.3
+
+# Platform-specific
+pywin32>=306; sys_platform == "win32"
+pyobjc-framework-Cocoa>=9.0; sys_platform == "darwin"
+pyobjc-framework-Quartz>=9.0; sys_platform == "darwin"
+
